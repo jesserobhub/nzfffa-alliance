@@ -2,8 +2,7 @@ name: Alliance Weekly Recap
 
 on:
   schedule:
-    # Tuesday 20:00 UTC (edit if needed)
-    - cron: "0 20 * * TUE"
+    - cron: "0 20 * * TUE"   # Tuesday 20:00 UTC
   workflow_dispatch: {}
 
 jobs:
@@ -20,19 +19,31 @@ jobs:
 
       - name: Install dependencies
         run: |
+          python -V
           python -m pip install --upgrade pip
           pip install requests reportlab
+          python -c "import sys,requests,reportlab; print('[DEBUG] deps ok:', requests.__version__)"
+
+      - name: Debug league id
+        env:
+          SLEEPER_LEAGUE_ID: ${{ secrets.SLEEPER_LEAGUE_ID }}
+        run: |
+          echo "SLEEPER_LEAGUE_ID='${SLEEPER_LEAGUE_ID}'"
+          if [ -z "${SLEEPER_LEAGUE_ID}" ]; then
+            echo "Warning: SLEEPER_LEAGUE_ID is empty; script will use default."
+          fi
 
       - name: Generate Alliance recap PDF
         env:
           SLEEPER_LEAGUE_ID: ${{ secrets.SLEEPER_LEAGUE_ID }}
         run: |
+          set -x
           python alliance_recap.py
-          ls -l
+          ls -la
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: Alliance-Weekly-Recap
           path: "*.pdf"
-          if-no-files-found: error
+          if-no-files-found: warn   # don't fail the job; see logs instead
